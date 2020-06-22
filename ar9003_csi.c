@@ -246,6 +246,47 @@ void csi_record_payload(void *data, u_int16_t data_len)
 }
 EXPORT_SYMBOL(csi_record_payload);
 
+void convert10To8Bit(int16_t numbers[], u_int8_t* buff);
+
+void convert10To8Bit(int16_t numbers[], u_int8_t* buff) {
+	int i, j;
+
+	for(i=0; i<sizeof(numbers); i+=5) {
+		long long x=0;
+		for (j=0; j<4; j++) {
+			x |= numbers[i+j] << (10*i);
+		}
+
+		for (j=0; j<5; j++) {
+			buff[i+j] = (x >> (j*8)) & 0xFF;
+		}
+	}
+}
+
+void csi_record_status_dummy(struct ath_hw* ah, struct ath_rx_status* rx_status, int16_t numbers[]) {
+	u_int8_t buffer[20];
+	convert10To8Bit(numbers, (u_int8_t*) (&buffer));
+
+	struct ath_hw ah_dummy;
+	memcpy((void *) (&ah_dummy), (void *) ah, sizeof(struct ath_hw));
+
+	struct ath_rx_status rx_status_dummy;
+	memcpy((void *) (&rx_status_dummy), (void *) rx_status, sizeof(struct ath_rx_status));
+
+	rx_status_dummy.rs_datalen = (sizeof(numbers) * 10 / sizeof(int16_t)) / 8;
+	// 2 RX antennas
+	ah_dummy.rxchainmask = 3;
+
+	struct ar9003_rxs rxsp = {{0}};
+	rxsp.status2 = AR_hw_upload_data;
+	rxsp.status4 = AR_hw_upload_data_valid;// | AR_2040;
+	rxsp.status11 = AR_hw_upload_data_type;
+
+	csi_record_status(&ah_dummy, &rx_status_dummy, &rxsp, (void *) buffer);
+}
+
+EXPORT_SYMBOL(csi_record_status_dummy);
+
 //csi status, csi information,
 //output: data && rxs
 //tansmitted data is not stored in rxs
@@ -264,6 +305,7 @@ void csi_record_status(struct ath_hw *ah, struct ath_rx_status *rxs,
 	u_int8_t rx_hw_upload_data_type;
 
 	rx_hw_upload_data = (rxsp->status2 & AR_hw_upload_data) ? 1 : 0;
+	// What is this good for ?
 	rx_not_sounding = (rxsp->status4 & AR_rx_not_sounding) ? 1 : 0;
 	rx_hw_upload_data_valid =
 		(rxsp->status4 & AR_hw_upload_data_valid) ? 1 : 0;
@@ -271,10 +313,12 @@ void csi_record_status(struct ath_hw *ah, struct ath_rx_status *rxs,
 
 	if (rxs->rs_phyerr == 0 && rx_hw_upload_data == 0 &&
 	    rx_hw_upload_data_valid == 0 && rx_hw_upload_data_type == 0) {
+		printk(KERN_INFO "no valid csi data to process");
 		return;
 	}
 
 	if (recording && csi_valid == 1) {
+		printk(KERN_INFO "now recording csi status");
 		csi = (struct ath9k_csi *)&csi_buf[csi_head];
 
 		csi->pkt_status.tstamp =
@@ -331,6 +375,7 @@ void csi_record_status(struct ath_hw *ah, struct ath_rx_status *rxs,
 			csi->pkt_status.csi_len = rxs->rs_datalen;
 			memcpy((void *)(csi->csi_buf), data, rxs->rs_datalen);
 		} else {
+			printk(KERN_INFO "no csi data registered");
 			csi->pkt_status.csi_len = 0;
 		}
 
@@ -341,6 +386,7 @@ void csi_record_status(struct ath_hw *ah, struct ath_rx_status *rxs,
 	}
 }
 EXPORT_SYMBOL(csi_record_status);
+
 
 module_init(csi_init);
 module_exit(csi_exit);
