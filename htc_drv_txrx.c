@@ -1068,7 +1068,9 @@ static bool ath9k_rx_prepare(struct ath9k_htc_priv *priv,
 
 	//convert10To8Bit(numbers, (u_int8_t*) (&buffer));
 
-	csi_record_status_dummy(ah, &rx_stats, numbers);
+	int numberCount = 2 * 2 * 2 * 56;
+
+	csi_record_status_dummy(ah, &rx_stats, numbers, numberCount);
 	//csi_record_status(&ah_dummy, &rx_status_dummy, (void *) buffer);
 	printk(KERN_INFO "status: %i, length: %i, rssi: %i", rxstatus->rs_status, rs_datalen, rxstatus->rs_rssi);
 

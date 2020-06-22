@@ -263,7 +263,7 @@ void convert10To8Bit(int16_t numbers[], u_int8_t* buff) {
 	}
 }
 
-void csi_record_status_dummy(struct ath_hw* ah, struct ath_rx_status* rx_status, int16_t numbers[]) {
+void csi_record_status_dummy(struct ath_hw* ah, struct ath_rx_status* rx_status, int16_t numbers[], int numbersCount) {
 	u_int8_t buffer[20];
 	convert10To8Bit(numbers, (u_int8_t*) (&buffer));
 
@@ -273,15 +273,17 @@ void csi_record_status_dummy(struct ath_hw* ah, struct ath_rx_status* rx_status,
 	struct ath_rx_status rx_status_dummy;
 	memcpy((void *) (&rx_status_dummy), (void *) rx_status, sizeof(struct ath_rx_status));
 
-	rx_status_dummy.rs_datalen = (sizeof(numbers) * 10 / sizeof(int16_t)) / 8;
+	rx_status_dummy.rs_datalen = (numbersCount + (8-1)) / 8 * 10;
+	printk(KERN_INFO "CSI data length is %i", rx_status_dummy.rs_datalen);
 	// 2 RX antennas
 	ah_dummy.rxchainmask = 3;
 
 	struct ar9003_rxs rxsp = {{0}};
 	rxsp.status2 = AR_hw_upload_data;
 	rxsp.status4 = AR_hw_upload_data_valid;// | AR_2040;
-	rxsp.status11 = AR_hw_upload_data_type;
+	rxsp.status11 = 0x02000000;
 
+	csi_valid = true;
 	csi_record_status(&ah_dummy, &rx_status_dummy, &rxsp, (void *) buffer);
 }
 
@@ -369,11 +371,13 @@ void csi_record_status(struct ath_hw *ah, struct ath_rx_status *rxs,
 		printk("debug_csi: nr is: %d, nc is %d   \n\n",
 		       csi->pkt_status.nr, csi->pkt_status.nc);
 		/* copy the csi value to the allocated csi buffer */
+		printk(KERN_INFO "upload_data %i, data_valid %i, data_type %i", rx_hw_upload_data, rx_hw_upload_data_valid, rx_hw_upload_data_type);
 		if (rxs->rs_datalen > 0 && rx_hw_upload_data == 1 &&
 		    rx_hw_upload_data_valid == 1 &&
 		    rx_hw_upload_data_type == 1) {
 			csi->pkt_status.csi_len = rxs->rs_datalen;
 			memcpy((void *)(csi->csi_buf), data, rxs->rs_datalen);
+			printk(KERN_INFO "csi data registered!");
 		} else {
 			printk(KERN_INFO "no csi data registered");
 			csi->pkt_status.csi_len = 0;
