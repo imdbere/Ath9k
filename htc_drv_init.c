@@ -214,6 +214,7 @@ static int ath9k_init_htc_services(struct ath9k_htc_priv *priv, u16 devid,
 	dev_info(priv->dev, "ath9k_htc: HTC initialized with %d credits\n",
 		 priv->htc->credits);
 
+	printk(KERN_INFO "Hello World!");
 	return 0;
 
 err:
