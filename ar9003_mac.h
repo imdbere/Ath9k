@@ -52,22 +52,25 @@
 
 #define AR9003TXC_CONST(_ds) ((const struct ar9003_txc *) _ds)
 
+// RX Descriptor, See page 45 of Data Sheet
 struct ar9003_rxs {
 	u32 ds_info;
-	u32 status1;
-	u32 status2;
-	u32 status3;
-	u32 status4;
-	u32 status5;
-	u32 status6;
-	u32 status7;
-	u32 status8;
-	u32 status9;
-	u32 status10;
-	u32 status11;
+	u32 status1;	// RX_Rate + RSSI (0,1,2)
+	u32 status2;	// RX Data Length, Num. Padding
+	u32 status3;	// Timestamp
+	u32 status4;	// Various Errors, 20 or 40MHz indicator
+	u32 status5;	// Combined Signal Strenght, RSSI (10, 11, 12)
+	u32 status6;	// RX Packet error magnitude 0
+	u32 status7;	// RX Packet error magnitude 1
+	u32 status8;	// RX Packet error magnitude 2
+	u32 status9;	// RX Packet error magnitude 3
+	u32 status10;	// RX Packet error magnitude 4
+	u32 status11;	// Various Flags
 } __packed __aligned(4);
 
 /* Transmit Control Descriptor */
+// See Page 32 in Datasheet
+// 23 32-bit Words + padding
 struct ar9003_txc {
 	u32 info;   /* descriptor information */
 	u32 link;   /* link pointer */
@@ -96,16 +99,17 @@ struct ar9003_txc {
 	u32 pad[8]; /* pad to cache line (128 bytes/32 dwords) */
 } __packed __aligned(4);
 
+// TX Status descriptor, See page 40 in Data Sheet
 struct ar9003_txs {
 	u32 ds_info;
-	u32 status1;
-	u32 status2;
-	u32 status3;
-	u32 status4;
-	u32 status5;
-	u32 status6;
-	u32 status7;
-	u32 status8;
+	u32 status1;	// TX Descriptor Sequence Number
+	u32 status2;	// Block ACK Status, ACK Signal strength
+	u32 status3;	// TX Errors
+	u32 status4;	// Timestamp
+	u32 status5;	// Block ACK Bitmap 0-31
+	u32 status6;	// Block ACK Bitmap 32-63
+	u32 status7;	// RX ACK Signal Strength (cont.)
+	u32 status8;	// Sequence Number, Done Flag, various stuff
 } __packed __aligned(4);
 
 void ar9003_hw_attach_mac_ops(struct ath_hw *hw);

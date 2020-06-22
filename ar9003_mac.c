@@ -24,8 +24,7 @@ static void ar9003_hw_rx_enable(struct ath_hw *hw)
 	REG_WRITE(hw, AR_CR, 0);
 }
 
-static void
-ar9003_set_txdesc(struct ath_hw *ah, void *ds, struct ath_tx_info *i)
+static void ar9003_set_txdesc(struct ath_hw *ah, void *ds, struct ath_tx_info *i)
 {
 	struct ar9003_txc *ads = ds;
 	int checksum = 0;
