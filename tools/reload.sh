@@ -12,3 +12,5 @@ sudo insmod ath9k_hw.ko
 sudo insmod ath9k_common.ko
 sudo insmod ath9k.ko
 sudo insmod ath9k_htc.ko
+
+sudo chmod 777 /dev/CSI_dev 

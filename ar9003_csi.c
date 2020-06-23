@@ -246,26 +246,53 @@ void csi_record_payload(void *data, u_int16_t data_len)
 }
 EXPORT_SYMBOL(csi_record_payload);
 
-void convert10To8Bit(int16_t numbers[], u_int8_t* buff);
+void convert10To8Bit(int16_t numbers[], int count, uint8_t* buff);
 
-void convert10To8Bit(int16_t numbers[], u_int8_t* buff) {
-	int i, j;
+/*void convert10To8Bit(int16_t numbers[], uint8_t* buff) {
+	unsigned int i, j;
+    uint16_t* posNumbers = (uint16_t*) numbers;
 
-	for(i=0; i<sizeof(numbers); i+=5) {
-		long long x=0;
+	for(i=0; i<sizeof(posNumbers); i+=5) {
+		unsigned long long x=0;
 		for (j=0; j<4; j++) {
-			x |= numbers[i+j] << (10*i);
+			x |= (posNumbers[i+j] & 0x03FF) << (10*j);
 		}
 
 		for (j=0; j<5; j++) {
 			buff[i+j] = (x >> (j*8)) & 0xFF;
 		}
 	}
+}*/
+
+void convert10To8Bit(int16_t numbers[], int count, u_int8_t* buff) {
+    uint32_t currentNumber = 0;
+    uint16_t* posNumbers = (uint16_t*) numbers;
+    u_int8_t remainingBits = 0;
+    int currentNumberIndex = 0;
+
+	int i;
+    for (i = 0; currentNumberIndex <= count; i++)
+    {
+        if (remainingBits < 10) {
+            uint16_t newNumber = currentNumberIndex < count ?
+                (posNumbers[currentNumberIndex] & 0x03FF) : 0;
+
+            currentNumberIndex++;
+            currentNumber += newNumber << remainingBits;
+            remainingBits += 10;
+        }
+
+        u_int8_t currByte = (uint8_t) (currentNumber & 0xFF);
+        buff[i] = currByte;
+        
+        remainingBits -= 8;
+        currentNumber = currentNumber >> 8;
+    }
 }
 
 void csi_record_status_dummy(struct ath_hw* ah, struct ath_rx_status* rx_status, int16_t numbers[], int numbersCount) {
-	u_int8_t buffer[20];
-	convert10To8Bit(numbers, (u_int8_t*) (&buffer));
+	u_int8_t buffer[2000];
+	convert10To8Bit(numbers, numbersCount, (u_int8_t*) (&buffer));
 
 	struct ath_hw ah_dummy;
 	memcpy((void *) (&ah_dummy), (void *) ah, sizeof(struct ath_hw));
