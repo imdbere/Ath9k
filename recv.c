@@ -1075,6 +1075,7 @@ int ath_rx_tasklet(struct ath_softc *sc, int flush, bool hp)
 	unsigned int budget = 512;
 	struct ieee80211_hdr *hdr;
 
+	printk(KERN_INFO "dma type is %i", dma_type);
 	if (edma)
 		dma_type = DMA_BIDIRECTIONAL;
 	else

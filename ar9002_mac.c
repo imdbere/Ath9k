@@ -16,6 +16,7 @@
 
 #include "hw.h"
 #include <linux/export.h>
+#include "ar9003_csi.h"
 
 #define AR_BufLen           0x00000fff
 
@@ -310,6 +311,34 @@ ar9002_set_txdesc(struct ath_hw *ah, void *ds, struct ath_tx_info *i)
 	WRITE_ONCE(ads->ds_ctl9, SM(i->txpower[1], AR_XmitPower1));
 	WRITE_ONCE(ads->ds_ctl10, SM(i->txpower[2], AR_XmitPower2));
 	WRITE_ONCE(ads->ds_ctl11, SM(i->txpower[3], AR_XmitPower3));
+
+	u_int32_t rate_ctl, tries_ctl;
+	/** Get Tx rates */
+	rate_ctl = READ_ONCE(ads->ds_ctl5);
+
+	/** If Tx rates greater than MCS0 then set the antenna switch for Tx0 to 0
+     * and set tx_tries to 0, such that frame data exchanges are not retried*/
+	if (MS(rate_ctl, AR_XmitRate3) >= 0x80 ||
+	    MS(rate_ctl, AR_XmitRate2) >= 0x80 ||
+	    MS(rate_ctl, AR_XmitRate1) >= 0x80) {
+		/** Set antenna switches for Tx series 0 
+		 * Original CSI code also set switches for 1-3 but this is inheritently 
+         * done in lines 164-166 */
+		WRITE_ONCE(ads->ds_ctl10, 0);
+		/** Set tx_tries to zero for each Tx series */
+        tries_ctl = READ_ONCE(ads->ds_ctl4);
+        tries_ctl &=
+			~(AR_xmit_data_tries1 | AR_xmit_data_tries2 |
+			  AR_xmit_data_tries3);
+        WRITE_ONCE(ads->ds_ctl4, tries_ctl);
+	} else
+		WRITE_ONCE(ads->ds_ctl10, AR_Not_Sounding);
+
+	/** TODO Why? */
+	if (MS(rate_ctl, AR_XmitRate0) >= 0x80)
+		WRITE_ONCE(ads->ds_ctl10, 0);
+	else
+		WRITE_ONCE(ads->ds_ctl10, AR_Not_Sounding);
 }
 
 static int ar9002_hw_proc_txdesc(struct ath_hw *ah, void *ds,

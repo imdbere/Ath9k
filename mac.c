@@ -17,6 +17,7 @@
 #include "hw.h"
 #include "hw-ops.h"
 #include <linux/export.h>
+#include "ar9003_csi.h"
 
 static void ath9k_hw_set_txq_interrupts(struct ath_hw *ah,
 					struct ath9k_tx_queue_info *qi)
@@ -624,6 +625,30 @@ int ath9k_hw_rxprocdesc(struct ath_hw *ah, struct ath_desc *ds,
 
 	if (ads.ds_rxstatus8 & AR_KeyMiss)
 		rs->rs_status |= ATH9K_RXERR_KEYMISS;
+
+	/** Record CSI */
+	/** If a CRC error was detected  */
+	// Is this correct ?
+	void* buf_addr = (void*) ds;
+
+	if (ads.ds_rxstatus8 & AR_CRCErr) {
+		printk(KERN_INFO "Got CRC error");
+		if (rs->rs_rate >= 0x80) {
+			csi_record_payload(buf_addr + KAL_NUM_DESC_WORDS * 4,
+					   rs->rs_datalen);
+			csi_record_status_2(ah, rs, &ads,
+					  buf_addr + KAL_NUM_DESC_WORDS * 4);
+		}
+	} else {
+		printk(KERN_INFO "More descriptors");
+		/** If descriptor is not the final descriptor in a set */
+		if (rs->rs_more == 1)
+			csi_record_payload(buf_addr + KAL_NUM_DESC_WORDS * 4,
+					   rs->rs_datalen);
+		if (rs->rs_rate >= 0x80)
+			csi_record_status_2(ah, rs, &ads,
+					  buf_addr + KAL_NUM_DESC_WORDS * 4);
+	}
 
 	return 0;
 }

@@ -419,6 +419,105 @@ void csi_record_status(struct ath_hw *ah, struct ath_rx_status *rxs,
 EXPORT_SYMBOL(csi_record_status);
 
 
+void csi_record_status_2(struct ath_hw *ah, struct ath_rx_status *rxs,
+		       struct ar5416_desc *ads, void *data)
+{
+	printk(KERN_INFO "recording csi status");
+	struct ath9k_csi *csi;
+
+	u_int8_t nr;
+	u_int8_t chan_BW;
+	u_int8_t rx_not_sounding;
+	u_int8_t rx_hw_upload_data;
+	//u_int8_t rx_hw_upload_data_valid;
+	u_int8_t rx_hw_upload_data_type;
+
+	// Not in descriptor
+	//rx_hw_upload_data = (rxsp->status2 & AR_hw_upload_data) ? 1 : 0;
+	// Not in desc either
+	//rx_not_sounding = (rxsp->status4 & AR_rx_not_sounding) ? 1 : 0;
+
+	//rx_hw_upload_data_valid =	(rxsp->status4 & AR_hw_upload_data_valid) ? 1 : 0;
+	//rx_hw_upload_data_type = MS(rxsp->status11, AR_hw_upload_data_type);
+
+	if (rxs->rs_phyerr == 0) {
+		printk(KERN_INFO "no valid csi data to process");
+		return;
+	}
+
+	if (recording && csi_valid == 1) {
+		printk(KERN_INFO "now recording csi status");
+		csi = (struct ath9k_csi *)&csi_buf[csi_head];
+
+		csi->pkt_status.tstamp =
+			rxs->rs_tstamp; // time stamp of the rx packet
+
+		csi->pkt_status.channel = ah->curchan->channel;
+
+		chan_BW = (ads->ds_rxstatus7 & AR_2040) >> 1;
+		csi->pkt_status.ChanBW = chan_BW; // channel bandwidth
+		nr = ar9300_get_nrx_csi(ah);
+		csi->pkt_status.nr = nr; // rx antennas number
+
+		csi->pkt_status.phyerr = rxs->rs_phyerr; // PHY layer error code
+
+		csi->pkt_status.rssi = rxs->rs_rssi;
+		csi->pkt_status.rssi_ctl0 = rxs->rs_rssi_ctl[0];
+		csi->pkt_status.rssi_ctl1 = rxs->rs_rssi_ctl[1];
+		csi->pkt_status.rssi_ctl2 = rxs->rs_rssi_ctl[2];
+
+		csi->pkt_status.noise = 0; // to be updated
+		csi->pkt_status.rate = rxs->rs_rate; // data rate
+
+		/*rx_hw_upload_data = (rxsp->status2 & AR_hw_upload_data) ? 1 : 0;
+		rx_not_sounding = (rxsp->status4 & AR_rx_not_sounding) ? 1 : 0;
+		rx_hw_upload_data_valid =
+			(rxsp->status4 & AR_hw_upload_data_valid) ? 1 : 0;
+		rx_hw_upload_data_type =
+			MS(rxsp->status11, AR_hw_upload_data_type);*/
+
+		// Decides how many tones(subcarriers) are used according to the channel bandwidth
+		if (chan_BW == 0) {
+			csi->pkt_status.num_tones = 56; // 20MHz Channel
+		} else if (chan_BW == 1) {
+			csi->pkt_status.num_tones = 114; // 40MHz Channel
+		} else {
+			csi->pkt_status.num_tones = 56; // 20MHz Channel
+			printk("Error happends for channel bandwidth recording!!\n");
+		}
+
+		/* tx antennas number 
+         * NOTE: when the packet is received with error
+         * The antenna number value is not correct
+         */
+		csi->pkt_status.nc =
+			(int)(rxs->rs_datalen * BITS_PER_BYTE) /
+			(int)(BITS_PER_COMPLEX_SYMBOL * csi->pkt_status.nr *
+			      csi->pkt_status.num_tones);
+		printk("debug_csi: nr is: %d, nc is %d   \n\n",
+		       csi->pkt_status.nr, csi->pkt_status.nc);
+		/* copy the csi value to the allocated csi buffer */
+		//printk(KERN_INFO "upload_data %i, data_valid %i, data_type %i", rx_hw_upload_data, rx_hw_upload_data_valid, rx_hw_upload_data_type);
+		if (rxs->rs_datalen > 0/* && rx_hw_upload_data == 1 &&
+		    rx_hw_upload_data_valid == 1 &&
+		    rx_hw_upload_data_type == 1*/) {
+			csi->pkt_status.csi_len = rxs->rs_datalen;
+			memcpy((void *)(csi->csi_buf), data, rxs->rs_datalen);
+			printk(KERN_INFO "csi data registered!");
+		} else {
+			printk(KERN_INFO "no csi data registered");
+			csi->pkt_status.csi_len = 0;
+		}
+
+		csi_valid = 0; // update
+		csi_head = (csi_head + 1) & 0x0000000F;
+
+		wake_up_interruptible(&csi_queue); // wake up waiting queue
+	}
+}
+EXPORT_SYMBOL(csi_record_status_2);
+
+
 module_init(csi_init);
 module_exit(csi_exit);
 
