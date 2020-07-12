@@ -1,9 +1,9 @@
 #!/bin/bash
 
-sudo rmmod ath9k_htc
-sudo rmmod ath9k
-sudo rmmod ath9k_common
-sudo rmmod ath9k_hw
+sudo rmmod ath9k_htc || true
+sudo rmmod ath9k || true
+sudo rmmod ath9k_common || true
+sudo rmmod ath9k_hw || true
 
 #sudo insmod ../linux/drivers/net/wireless/ath/ath9k/
 cd ../linux/drivers/net/wireless/ath/ath9k/

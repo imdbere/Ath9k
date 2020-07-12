@@ -340,6 +340,7 @@ void csi_record_status(struct ath_hw *ah, struct ath_rx_status *rxs,
 		(rxsp->status4 & AR_hw_upload_data_valid) ? 1 : 0;
 	rx_hw_upload_data_type = MS(rxsp->status11, AR_hw_upload_data_type);
 
+	printk(KERN_INFO "upload_data: %i, not_sounding: %i, data_valid: %i, data_type: %i", rx_hw_upload_data, rx_not_sounding, rx_hw_upload_data_valid, rx_hw_upload_data_type);
 	if (rxs->rs_phyerr == 0 && rx_hw_upload_data == 0 &&
 	    rx_hw_upload_data_valid == 0 && rx_hw_upload_data_type == 0) {
 		printk(KERN_INFO "no valid csi data to process");
@@ -440,12 +441,13 @@ void csi_record_status_2(struct ath_hw *ah, struct ath_rx_status *rxs,
 	//rx_hw_upload_data_valid =	(rxsp->status4 & AR_hw_upload_data_valid) ? 1 : 0;
 	//rx_hw_upload_data_type = MS(rxsp->status11, AR_hw_upload_data_type);
 
-	if (rxs->rs_phyerr == 0) {
+	// rxs->rs_phyerr == 0 means no errors, why would we exclude valid data ?
+	/* if (rxs->rs_phyerr == 0) {
 		printk(KERN_INFO "no valid csi data to process");
 		return;
-	}
+	} */
 
-	if (recording && csi_valid == 1) {
+	if (recording /*&& csi_valid == 1*/) {
 		printk(KERN_INFO "now recording csi status");
 		csi = (struct ath9k_csi *)&csi_buf[csi_head];
 

@@ -297,6 +297,8 @@ struct ar5416_desc {
 			u32 status8;
 			u32 status9;
 		} tx;
+
+		// See page 24 of AR9287 Datasheet, status0 corresponds to word 4
 		struct {
 			u32 status0;
 			u32 status1;

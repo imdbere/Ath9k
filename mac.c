@@ -640,7 +640,7 @@ int ath9k_hw_rxprocdesc(struct ath_hw *ah, struct ath_desc *ds,
 					  buf_addr + KAL_NUM_DESC_WORDS * 4);
 		}
 	} else {
-		printk(KERN_INFO "More descriptors");
+		printk(KERN_INFO "More descriptors: %i, rs_rate: %X", rs->rs_more, rs->rs_rate);
 		/** If descriptor is not the final descriptor in a set */
 		if (rs->rs_more == 1)
 			csi_record_payload(buf_addr + KAL_NUM_DESC_WORDS * 4,
