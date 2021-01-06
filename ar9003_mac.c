@@ -609,9 +609,6 @@ int ath9k_hw_process_rxdesc_edma(struct ath_hw *ah, struct ath_rx_status *rxs,
 	if (rxsp->status11 & AR_KeyMiss)
 		rxs->rs_status |= ATH9K_RXERR_KEYMISS;
 
-	if (rxsp->status11 & AR_KeyMiss)
-		rxs->rs_status |= ATH9K_RXERR_KEYMISS;
-
 	/** Record CSI */
 	/** If a CRC error was detected  */
 	if (rxsp->status11 & AR_CRCErr) {
