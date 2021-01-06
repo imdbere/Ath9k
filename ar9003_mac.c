@@ -620,7 +620,7 @@ int ath9k_hw_process_rxdesc_edma(struct ath_hw *ah, struct ath_rx_status *rxs,
 					  buf_addr + KAL_NUM_DESC_WORDS * 4);
 		}
 	} else {
-		printk(KERN_INFO "More descriptors: %i, rs_rate: %X", rxs->rs_more, rxs->rs_rate);
+		//printk(KERN_INFO "More descriptors: %i, rs_rate: %X", rxs->rs_more, rxs->rs_rate);
 		/** If descriptor is not the final descriptor in a set */
 		if (rxs->rs_more == 1)
 			csi_record_payload(buf_addr + KAL_NUM_DESC_WORDS * 4,
